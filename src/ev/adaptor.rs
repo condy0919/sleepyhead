@@ -7,6 +7,14 @@ pub struct Adaptor {
     fdpair: (RawFd, RawFd),
 }
 
+impl Default for Adaptor {
+    fn default() -> Self {
+        Adaptor {
+            fdpair: (-1, -1),
+        }
+    }
+}
+
 impl Drop for Adaptor {
     #[inline]
     fn drop(&mut self) {
@@ -22,7 +30,7 @@ impl Adaptor {
                                         socket::SockType::Stream,
                                         socket::SockFlag::Nothing);
         Adaptor {
-            fdpair: result.unwrap_or((-1, -1))
+            fdpair: result.unwrap_or((-1, -1)),
         }
     }
 
@@ -32,7 +40,7 @@ impl Adaptor {
                                         socket::SockType::Stream,
                                         socket::SockFlag::Nonblock);
         Adaptor {
-            fdpair: result.unwrap_or((-1, -1))
+            fdpair: result.unwrap_or((-1, -1)),
         }
     }
 }
