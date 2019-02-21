@@ -23,10 +23,7 @@ fn test_ev_adaptor_write_failed() {
         .map(|_| panic!(""))
         .map_err(|e| {
             assert_eq!(e.kind(), io::ErrorKind::Other);
-
-            e.get_ref().map(|inner_e| {
-                assert_eq!(inner_e.description(), errno::Errno::EBADF.desc());
-            });
+            assert_eq!(e.raw_os_error().unwrap(), errno::Errno::EBADF as i32);
         })
         .unwrap_err();
 }

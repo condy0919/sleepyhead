@@ -1,7 +1,7 @@
 use crate::aux;
-use crate::Result;
 use libc;
 use libc::c_int;
+use std::io;
 use std::os::unix::io::RawFd;
 
 mod addr;
@@ -25,7 +25,7 @@ pub enum SockFlag {
     Cloexec = libc::SOCK_CLOEXEC,
 }
 
-pub fn socketpair(domain: AddressFamily, ty: SockType, flags: SockFlag) -> Result<(RawFd, RawFd)> {
+pub fn socketpair(domain: AddressFamily, ty: SockType, flags: SockFlag) -> io::Result<(RawFd, RawFd)> {
     let ty = (ty as c_int) | (flags as c_int);
 
     let mut fds = [-1, -1];
@@ -35,7 +35,7 @@ pub fn socketpair(domain: AddressFamily, ty: SockType, flags: SockFlag) -> Resul
     Ok((fds[0], fds[1]))
 }
 
-pub fn listen(fd: RawFd, backlog: usize) -> Result<()> {
+pub fn listen(fd: RawFd, backlog: usize) -> io::Result<()> {
     let result = unsafe { libc::listen(fd, backlog as c_int) };
     aux::cvt(result).map(|_| ())
 }
