@@ -1,17 +1,10 @@
 use crate::aux;
 use crate::socket;
 use std::os::unix::io::RawFd;
-use std::{default, io};
+use std::io;
 
 pub struct Adaptor {
     fdpair: (RawFd, RawFd),
-}
-
-impl default::Default for Adaptor {
-    #[inline]
-    fn default() -> Self {
-        Adaptor { fdpair: (-1, -1) }
-    }
 }
 
 impl Drop for Adaptor {
