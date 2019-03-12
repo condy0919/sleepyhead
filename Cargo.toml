@@ -2,7 +2,15 @@
 name = "sleepyhead"
 version = "0.1.0"
 authors = ["condy <condy0919@gmail.com>"]
+description = "Yet another stackfull coroutine for Rust"
+license = "MIT"
+readme = "README.md"
+build = "build.rs"
+repository = "https://github.com/condy0919/sleepyhead"
 edition = "2018"
 
 [dependencies]
 libc = "0.2"
+
+[build-dependencies]
+cc = "1.0"
