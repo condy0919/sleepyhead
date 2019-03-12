@@ -33,3 +33,20 @@ impl Drop for Stack {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_stack_size_too_large() {
+        let stack = Stack::with_pages(usize::max_value() >> 32);
+        assert!(stack.is_none());
+    }
+
+    #[test]
+    fn test_stack_size_normal() {
+        let stack = Stack::with_pages(64);
+        assert!(stack.is_some());
+    }
+}

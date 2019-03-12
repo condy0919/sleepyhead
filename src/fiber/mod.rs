@@ -1,5 +1,5 @@
-mod context;
-mod stack;
+pub mod context;
+pub mod stack;
 use crate::scheduler;
 
 pub enum FiberState {
