@@ -48,14 +48,14 @@ impl Adaptor {
 impl io::Read for Adaptor {
     #[inline]
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        aux::read(self.fdpair.0, buf).map_err(|e| e.into())
+        aux::read(self.fdpair.0, buf)
     }
 }
 
 impl io::Write for Adaptor {
     #[inline]
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        aux::write(self.fdpair.1, buf).map_err(|e| e.into())
+        aux::write(self.fdpair.1, buf)
     }
 
     #[inline]

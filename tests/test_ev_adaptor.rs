@@ -1,7 +1,7 @@
 extern crate sleepyhead;
 
 use sleepyhead::errno;
-use sleepyhead::ev::adaptor::Adaptor;
+use sleepyhead::io::adaptor::Adaptor;
 use std::io::{self, Read, Write};
 
 #[test]
