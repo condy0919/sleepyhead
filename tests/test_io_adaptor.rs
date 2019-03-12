@@ -5,7 +5,7 @@ use sleepyhead::io::adaptor::Adaptor;
 use std::io::{self, Read, Write};
 
 #[test]
-fn test_ev_adaptor_write_read() {
+fn test_io_adaptor_write_read() {
     let mut a = Adaptor::new();
 
     let xs = b"test";
@@ -16,7 +16,7 @@ fn test_ev_adaptor_write_read() {
 }
 
 #[test]
-fn test_ev_adaptor_write_failed() {
+fn test_io_adaptor_write_failed() {
     let mut a = Adaptor::default();
 
     a.write(b"test")
