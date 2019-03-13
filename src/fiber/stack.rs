@@ -1,7 +1,8 @@
 use std::alloc::{alloc, dealloc, Layout};
+use std::ptr::NonNull;
 
 pub struct Stack {
-    base: *mut u8,
+    base: NonNull<u8>,
     layout: Layout,
 }
 
@@ -13,23 +14,19 @@ impl Stack {
         let layout =
             unsafe { Layout::from_size_align_unchecked(PAGE_SIZE * n, STACK_ALIGNMENT_SIZE) };
 
-        let mem = unsafe { alloc(layout) };
-
-        if mem.is_null() {
-            None
-        } else {
+        NonNull::new(unsafe { alloc(layout) }).and_then(|mem| {
             Some(Stack {
                 base: mem,
                 layout: layout,
             })
-        }
+        })
     }
 }
 
 impl Drop for Stack {
     fn drop(&mut self) {
         unsafe {
-            dealloc(self.base, self.layout);
+            dealloc(self.base.as_ptr(), self.layout);
         }
     }
 }
