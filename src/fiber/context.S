@@ -11,7 +11,7 @@ context_init:
     movq %rsi, 128(%rdi) // ctx->rip = entrance
     movq %rcx, 72(%rdi)  // ctx->rsp = stack_base
     movq %rdx, (%rdi)    // ctx->rdi = arg
-    // Does it need a entrance at the bottom of stack_base?
+    movq %rsi, (%rcx)    // ret_addr = entrance
     ret
 
 

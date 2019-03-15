@@ -23,7 +23,6 @@ pub struct Context {
     rip: u64,
 }
 
-// TODO u8* -> Fiber&
 pub type EntranceFn = extern "C" fn(p: *mut u8) -> !;
 
 extern "C" {

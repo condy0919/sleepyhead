@@ -21,6 +21,10 @@ impl Stack {
             })
         })
     }
+
+    pub unsafe fn base(&self) -> *mut u8 {
+        self.base.as_ptr().offset(self.layout.size() as isize)
+    }
 }
 
 impl Drop for Stack {
@@ -45,5 +49,13 @@ mod tests {
     fn test_stack_size_normal() {
         let stack = Stack::with_pages(64);
         assert!(stack.is_some());
+    }
+
+    #[test]
+    fn test_stack_base() {
+        let stack = Stack::with_pages(64).unwrap();
+        unsafe {
+            assert!(!stack.base().is_null());
+        }
     }
 }
