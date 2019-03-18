@@ -32,7 +32,7 @@ context_switch:
     movq %rax, 48(%rsi)
     movq %rbx, 56(%rsi)
     movq %r10, 64(%rsi)
-    movq %rsp, 72(%rsi) // Shoule it put at the enf of this phrase?
+    movq %rsp, 72(%rsi)
     movq %rbp, 80(%rsi)
     movq %r11, 88(%rsi)
     movq %r12, 96(%rsi)

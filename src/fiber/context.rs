@@ -23,7 +23,7 @@ pub struct Context {
     rip: u64,
 }
 
-pub type EntranceFn = extern "C" fn(p: *mut u8) -> !;
+type EntranceFn = extern "C" fn(p: *mut u8) -> !;
 
 extern "C" {
     #[inline(never)]
