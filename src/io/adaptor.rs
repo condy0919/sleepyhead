@@ -45,12 +45,12 @@ impl Adaptor {
     }
 
     #[inline]
-    pub fn read_end(&self) -> RawFd {
+    pub fn read_endpoint(&self) -> RawFd {
         self.fdpair.0
     }
 
     #[inline]
-    pub fn write_end(&self) -> RawFd {
+    pub fn write_endpoint(&self) -> RawFd {
         self.fdpair.1
     }
 }
@@ -58,14 +58,14 @@ impl Adaptor {
 impl io::Read for Adaptor {
     #[inline]
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        aux::read(self.read_end(), buf)
+        aux::read(self.read_endpoint(), buf)
     }
 }
 
 impl io::Write for Adaptor {
     #[inline]
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        aux::write(self.write_end(), buf)
+        aux::write(self.write_endpoint(), buf)
     }
 
     #[inline]

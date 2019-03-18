@@ -5,10 +5,7 @@ use std::os::unix::io::RawFd;
 // 1. EXISTS ERROR 用于在注册时
 // 2. epoll 触发时，用来判断是 EPOLL 事件，还是通过 channel 传递的要创建 uthread 的信息
 
-pub trait Flag: Clone + Copy + BitOrAssign {
-    fn from_u32(opt: u32) -> Self;
-    fn into_u32(self) -> u32;
-}
+pub trait Flag: From<u32> + Into<u32> + Clone + Copy + BitOrAssign {}
 
 pub struct FdFlag<T: Flag> {
     fd: RawFd,
@@ -19,7 +16,7 @@ impl<T: Flag> From<u64> for FdFlag<T> {
     #[inline]
     fn from(fdflag: u64) -> Self {
         let fd = (fdflag & 0x00000000ffffffff) as RawFd;
-        let flag = T::from_u32((fdflag >> 32) as u32);
+        let flag = T::from((fdflag >> 32) as u32);
 
         FdFlag { fd, flag }
     }
@@ -28,7 +25,7 @@ impl<T: Flag> From<u64> for FdFlag<T> {
 impl<T: Flag> Into<u64> for FdFlag<T> {
     #[inline]
     fn into(self) -> u64 {
-        (u64::from(self.flag.into_u32()) << 32) | u64::from(self.fd as u32)
+        (u64::from(self.flag.into()) << 32) | u64::from(self.fd as u32)
     }
 }
 

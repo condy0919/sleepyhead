@@ -12,29 +12,34 @@ pub enum FdAttribute {
 }
 
 impl BitOrAssign for FdAttribute {
+    #[inline]
     fn bitor_assign(&mut self, rhs: Self) {
-        *self = FdAttribute::from_u32((*self as u32) | (rhs as u32));
+        *self = FdAttribute::from((*self as u32) | (rhs as u32));
     }
 }
 
-impl Flag for FdAttribute {
+impl From<u32> for FdAttribute {
     #[inline]
-    fn from_u32(opt: u32) -> Self {
+    fn from(opt: u32) -> Self {
         match opt {
             0x0 => FdAttribute::Empty,
             0x1 => FdAttribute::EventChannel,
             _ => panic!("unknown fd attribute"),
         }
     }
+}
 
+impl Into<u32> for FdAttribute {
     #[inline]
-    fn into_u32(self) -> u32 {
+    fn into(self) -> u32 {
         match self {
             FdAttribute::Empty => 0x0,
             FdAttribute::EventChannel => 0x1,
         }
     }
 }
+
+impl Flag for FdAttribute {}
 
 pub struct Monitor {
     capacity: usize,
