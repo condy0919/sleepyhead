@@ -43,19 +43,29 @@ impl Adaptor {
             fdpair: result.unwrap_or((-1, -1)),
         }
     }
+
+    #[inline]
+    pub fn read_end(&self) -> RawFd {
+        self.fdpair.0
+    }
+
+    #[inline]
+    pub fn write_end(&self) -> RawFd {
+        self.fdpair.1
+    }
 }
 
 impl io::Read for Adaptor {
     #[inline]
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        aux::read(self.fdpair.0, buf)
+        aux::read(self.read_end(), buf)
     }
 }
 
 impl io::Write for Adaptor {
     #[inline]
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        aux::write(self.fdpair.1, buf)
+        aux::write(self.write_end(), buf)
     }
 
     #[inline]
