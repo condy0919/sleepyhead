@@ -18,7 +18,7 @@ pub struct Scheduler<'m, 'f> {
 impl<'m, 'f> Scheduler<'m, 'f> {
     pub fn new(max_n_fiber: usize, iomon: &'m mut monitor::Monitor) -> Self {
         let evch = adaptor::Adaptor::with_nonblock();
-        iomon.register_ltrd(evch.read_endpoint(), monitor::FdAttribute::EventChannel);
+        iomon.register_ltrd(evch.read_endpoint() as u64 | monitor::EVENT_CHANNEL_FLAG);
 
         Scheduler {
             max_n_fiber,
@@ -28,7 +28,7 @@ impl<'m, 'f> Scheduler<'m, 'f> {
             dying: VecDeque::new(),
             lock: spinlock::SpinLock::new(),
             reqs: Vec::new(),
-            evch: evch,
+            evch,
         }
     }
 

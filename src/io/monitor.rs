@@ -1,45 +1,9 @@
 use crate::aux;
-use crate::fdflag::{FdFlag, Flag};
 use crate::io::adaptor;
 use libc;
-use std::ops::BitOrAssign;
 use std::os::unix::io::RawFd;
 
-#[derive(Clone, Copy)]
-pub enum FdAttribute {
-    Empty = 0x0,
-    EventChannel = 0x1,
-}
-
-impl BitOrAssign for FdAttribute {
-    #[inline]
-    fn bitor_assign(&mut self, rhs: Self) {
-        *self = FdAttribute::from((*self as u32) | (rhs as u32));
-    }
-}
-
-impl From<u32> for FdAttribute {
-    #[inline]
-    fn from(opt: u32) -> Self {
-        match opt {
-            0x0 => FdAttribute::Empty,
-            0x1 => FdAttribute::EventChannel,
-            _ => panic!("unknown fd attribute"),
-        }
-    }
-}
-
-impl Into<u32> for FdAttribute {
-    #[inline]
-    fn into(self) -> u32 {
-        match self {
-            FdAttribute::Empty => 0x0,
-            FdAttribute::EventChannel => 0x1,
-        }
-    }
-}
-
-impl Flag for FdAttribute {}
+pub const EVENT_CHANNEL_FLAG: u64 = 0x1 << 32;
 
 pub struct Monitor {
     capacity: usize,
@@ -79,13 +43,16 @@ impl Monitor {
         }
     }
 
-    pub fn register_ltrd(&mut self, fd: RawFd, attr: FdAttribute) {
+    pub fn register_ltrd(&mut self, fd_flag: u64) {
+        let fd = (fd_flag & 0xffffffff) as RawFd;
         let mut ev = libc::epoll_event {
             events: libc::EPOLLIN as u32,
-            u64: FdFlag::<FdAttribute>::new(fd, attr).into(),
+            u64: fd_flag,
         };
 
-        unsafe { libc::epoll_ctl(self.epfd, libc::EPOLL_CTL_ADD, fd, &mut ev as *mut _); }
+        unsafe {
+            libc::epoll_ctl(self.epfd, libc::EPOLL_CTL_ADD, fd, &mut ev as *mut _);
+        }
     }
 
     pub fn poll(&mut self) {
@@ -107,11 +74,15 @@ impl Monitor {
 
         // TODO PREIO
         for i in 0..nfds {
-            let fdflag: FdFlag<FdAttribute> = self.epevs[i as usize].u64.into();
-            match fdflag.get_flag() {
-                FdAttribute::Empty => {}
-                FdAttribute::EventChannel => {}
-            };
+            let fd_flag = self.epevs[i as usize].u64;
+            let fd = (fd_flag & 0xffffffff) as RawFd;
+            let flag = fd_flag >> 32;
+
+            if flag == EVENT_CHANNEL_FLAG {
+
+            } else {
+
+            }
         }
     }
 }
