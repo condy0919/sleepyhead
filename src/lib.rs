@@ -77,7 +77,7 @@ mod aux {
     #[inline]
     pub fn send<T: Sized + Sync + Send + Copy>(fd: RawFd, obj: T) -> io::Result<usize> {
         let buf: &[u8] = unsafe {
-            slice::from_raw_parts(mem::transmute(&obj), mem::size_of_val(&obj))
+            slice::from_raw_parts(&obj as *const _ as *const _, mem::size_of::<T>())
         };
         write(fd, buf)
     }
@@ -86,7 +86,7 @@ mod aux {
     pub fn recv<T: Sized + Sync + Send + Copy>(fd: RawFd) -> io::Result<T> {
         let mut obj: T = unsafe { mem::uninitialized() };
         let buf: &mut [u8] = unsafe {
-            slice::from_raw_parts_mut(mem::transmute(&mut obj), mem::size_of_val(&obj))
+            slice::from_raw_parts_mut(&mut obj as *mut _ as *mut _, mem::size_of::<T>())
         };
 
         read(fd, buf).map(|_| obj)

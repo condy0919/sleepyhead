@@ -1,12 +1,13 @@
 pub mod context;
 pub mod stack;
+
 use crate::scheduler;
 use crate::util::FnBox;
 use std::alloc;
 use std::mem;
 use std::ptr;
 
-const DEFAULT_STACK_PAGES: usize = 64;
+pub const DEFAULT_STACK_PAGES: usize = 64;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FiberState {
@@ -68,9 +69,11 @@ impl<'c> Fiber<'c> {
     extern "C" fn entrance(arg: *mut u8) -> ! {
         let mut fiber = unsafe { Box::from_raw(arg as *mut Fiber) };
 
-        let _guard = fiber.state.mark_entry();
-        if let Some(f) = fiber.f.take() {
-            f.call_box();
+        {
+            let _guard = fiber.state.mark_entry();
+            if let Some(f) = fiber.f.take() {
+                f.call_box();
+            }
         }
 
         // TODO task steal from other fibers
@@ -78,12 +81,20 @@ impl<'c> Fiber<'c> {
         // TODO fiber is dying, move self to dying list
 
         // TODO switch to idel fiber
+        scheduler::current_limbo.with(|limbo| {
+            fiber.switch(&mut limbo.borrow_mut());
+        });
 
         unreachable!();
     }
 
     #[inline]
     pub fn new<F: FnOnce() + 'c>(pages: usize, f: F) -> Option<Box<Fiber<'c>>> {
+        Self::from_boxed(pages, Box::new(f))
+    }
+
+    #[inline]
+    pub fn from_boxed(pages: usize, f: Box<FnBox + 'c>) -> Option<Box<Fiber<'c>>> {
         stack::Stack::with_pages(pages).and_then(|stk| {
             let layout = alloc::Layout::new::<Fiber>();
             ptr::NonNull::new(unsafe { alloc::alloc(layout) }).and_then(|p| {
@@ -99,15 +110,16 @@ impl<'c> Fiber<'c> {
                     )
                 };
                 fiber.stack = stk;
-                fiber.f = Some(Box::new(f));
+                fiber.f = Some(f);
                 fiber.state = FiberState::new();
                 Some(unsafe { Box::from_raw(this) })
             })
         })
     }
 
+
     #[inline]
-    pub fn switch(&mut self, to: &mut Self) {
+    pub fn switch<'b, 'd>(&mut self, to: &'b mut Fiber<'d>) {
         unsafe { self.ctx.switch(&mut to.ctx) }
     }
 }
