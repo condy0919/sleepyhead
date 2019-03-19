@@ -28,6 +28,14 @@ impl SpinLock {
     }
 }
 
+impl Drop for SpinLock {
+    fn drop(&mut self) {
+        if self.locked.load(Ordering::Relaxed) {
+            panic!("spinlock still locked");
+        }
+    }
+}
+
 
 #[cfg(test)]
 mod tests {
