@@ -1,9 +1,7 @@
-extern crate boxfnonce;
-
 pub mod context;
 pub mod stack;
 use crate::scheduler;
-use boxfnonce::BoxFnOnce;
+use crate::util::FnBox;
 use std::alloc;
 use std::mem;
 use std::ptr;
@@ -61,18 +59,18 @@ impl<'s> Drop for FiberStateGuard<'s> {
 pub struct Fiber<'c> {
     ctx: context::Context,
     stack: stack::Stack,
-    f: Option<BoxFnOnce<'c, ()>>, // FIXME waiting for Box<FnOnce>
+    f: Option<Box<FnBox + 'c>>, // FIXME waiting for Box<FnOnce>
     state: FiberState,
     // TODO &mut scheduler
 }
 
-impl<'a> Fiber<'a> {
+impl<'c> Fiber<'c> {
     extern "C" fn entrance(arg: *mut u8) -> ! {
         let mut fiber = unsafe { Box::from_raw(arg as *mut Fiber) };
 
         let _guard = fiber.state.mark_entry();
         if let Some(f) = fiber.f.take() {
-            f.call();
+            f.call_box();
         }
 
         // TODO task steal from other fibers
@@ -85,7 +83,7 @@ impl<'a> Fiber<'a> {
     }
 
     #[inline]
-    pub fn new<'c, F: FnOnce() + 'c>(pages: usize, f: F) -> Option<Box<Fiber<'c>>> {
+    pub fn new<F: FnOnce() + 'c>(pages: usize, f: F) -> Option<Box<Fiber<'c>>> {
         stack::Stack::with_pages(pages).and_then(|stk| {
             let layout = alloc::Layout::new::<Fiber>();
             ptr::NonNull::new(unsafe { alloc::alloc(layout) }).and_then(|p| {
@@ -101,7 +99,7 @@ impl<'a> Fiber<'a> {
                     )
                 };
                 fiber.stack = stk;
-                fiber.f = Some(BoxFnOnce::from(f));
+                fiber.f = Some(Box::new(f));
                 fiber.state = FiberState::new();
                 Some(unsafe { Box::from_raw(this) })
             })
