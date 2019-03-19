@@ -12,7 +12,9 @@ mod aux {
     use libc;
     use libc::size_t;
     use std::io;
+    use std::mem;
     use std::os::unix::io::RawFd;
+    use std::slice;
 
     #[doc(hidden)]
     pub trait IsMinusOne {
@@ -70,5 +72,23 @@ mod aux {
     pub fn close(fd: RawFd) -> io::Result<()> {
         let result = unsafe { libc::close(fd) };
         cvt(result).map(|_| ())
+    }
+
+    #[inline]
+    pub fn send<T: Sized + Sync + Send + Copy>(fd: RawFd, obj: T) -> io::Result<usize> {
+        let buf: &[u8] = unsafe {
+            slice::from_raw_parts(mem::transmute(&obj), mem::size_of_val(&obj))
+        };
+        write(fd, buf)
+    }
+
+    #[inline]
+    pub fn recv<T: Sized + Sync + Send + Copy>(fd: RawFd) -> io::Result<T> {
+        let mut obj: T = unsafe { mem::uninitialized() };
+        let buf: &mut [u8] = unsafe {
+            slice::from_raw_parts_mut(mem::transmute(&mut obj), mem::size_of_val(&obj))
+        };
+
+        read(fd, buf).map(|_| obj)
     }
 }

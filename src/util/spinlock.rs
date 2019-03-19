@@ -46,5 +46,6 @@ mod tests {
         let mut lock = SpinLock::new();
         lock.lock();
         assert!(!lock.try_lock());
+        lock.unlock();
     }
 }

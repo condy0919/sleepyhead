@@ -53,6 +53,16 @@ impl Adaptor {
     pub fn write_endpoint(&self) -> RawFd {
         self.fdpair.1
     }
+
+    #[inline]
+    pub fn send<T: Sized + Copy + Send + Sync>(&mut self, obj: T) -> io::Result<usize> {
+        aux::send(self.write_endpoint(), obj)
+    }
+
+    #[inline]
+    pub fn recv<T: Sized + Copy + Send + Sync>(&mut self) -> io::Result<T> {
+        aux::recv(self.read_endpoint())
+    }
 }
 
 impl io::Read for Adaptor {

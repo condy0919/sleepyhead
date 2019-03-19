@@ -3,6 +3,7 @@ extern crate sleepyhead;
 use sleepyhead::errno;
 use sleepyhead::io::adaptor::Adaptor;
 use std::io::{self, Read, Write};
+use std::mem;
 
 #[test]
 fn test_io_adaptor_write_read() {
@@ -26,4 +27,25 @@ fn test_io_adaptor_write_failed() {
             assert_eq!(e.raw_os_error().unwrap(), errno::Errno::EBADF as i32);
         })
         .unwrap_err();
+}
+
+#[test]
+fn test_io_adaptor_send_recv_pod_obj() {
+    #[derive(Copy, Clone)]
+    struct Foo {
+        a: u32,
+        b: char,
+    }
+
+    let foo = Foo {
+        a: 0xdeadbeef,
+        b: 'a',
+    };
+
+    let mut a = Adaptor::new();
+    assert_eq!(a.send(foo).unwrap(), mem::size_of_val(&foo));
+
+    let foo2: Foo = a.recv().unwrap();
+    assert_eq!(foo2.a, foo.a);
+    assert_eq!(foo2.b, foo.b);
 }
