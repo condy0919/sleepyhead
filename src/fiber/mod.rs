@@ -57,15 +57,15 @@ impl<'s> Drop for FiberStateGuard<'s> {
     }
 }
 
-pub struct Fiber<'c> {
+pub struct Fiber<'f> {
     ctx: context::Context,
     stack: stack::Stack,
-    f: Option<Box<FnBox + 'c>>, // FIXME waiting for Box<FnOnce>
+    f: Option<Box<FnBox + 'f>>, // FIXME waiting for Box<FnOnce>
     state: FiberState,
-    // TODO &mut scheduler
+    scheduler: usize,
 }
 
-impl<'c> Fiber<'c> {
+impl<'f> Fiber<'f> {
     extern "C" fn entrance(arg: *mut u8) -> ! {
         let mut fiber = unsafe { Box::from_raw(arg as *mut Fiber) };
 
@@ -81,20 +81,21 @@ impl<'c> Fiber<'c> {
         // TODO fiber is dying, move self to dying list
 
         // TODO switch to idel fiber
-        scheduler::current_limbo.with(|limbo| {
-            fiber.switch(&mut limbo.borrow_mut());
-        });
+        unsafe {
+            let sched = &mut *(fiber.scheduler as *mut scheduler::Scheduler);
+            fiber.switch(&mut sched.limbo);
+        }
 
         unreachable!();
     }
 
     #[inline]
-    pub fn new<F: FnOnce() + 'c>(pages: usize, f: F) -> Option<Box<Fiber<'c>>> {
-        Self::from_boxed(pages, Box::new(f))
+    pub fn new<F: FnOnce() + 'f>(pages: usize, f: F, sched: &mut scheduler::Scheduler) -> Option<Box<Self>> {
+        Self::from_boxed(pages, Box::new(f), sched)
     }
 
     #[inline]
-    pub fn from_boxed(pages: usize, f: Box<FnBox + 'c>) -> Option<Box<Fiber<'c>>> {
+    pub fn from_boxed(pages: usize, f: Box<FnBox + 'f>, sched: &mut scheduler::Scheduler) -> Option<Box<Self>> {
         stack::Stack::with_pages(pages).and_then(|stk| {
             let layout = alloc::Layout::new::<Fiber>();
             ptr::NonNull::new(unsafe { alloc::alloc(layout) }).and_then(|p| {
@@ -112,6 +113,7 @@ impl<'c> Fiber<'c> {
                 fiber.stack = stk;
                 fiber.f = Some(f);
                 fiber.state = FiberState::new();
+                fiber.scheduler = sched as *mut _ as usize;
                 Some(unsafe { Box::from_raw(this) })
             })
         })
@@ -119,8 +121,8 @@ impl<'c> Fiber<'c> {
 
 
     #[inline]
-    pub fn switch<'b, 'd>(&mut self, to: &'b mut Fiber<'d>) {
-        unsafe { self.ctx.switch(&mut to.ctx) }
+    pub fn switch(&mut self, to: &mut Fiber<'_>) {
+        unsafe { self.ctx.switch(&mut to.ctx); }
     }
 }
 

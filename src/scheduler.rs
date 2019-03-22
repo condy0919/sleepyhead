@@ -3,16 +3,11 @@ use crate::io::{adaptor, monitor};
 use crate::util::spinlock;
 use crate::util::FnBox;
 use std::mem;
-use std::cell::RefCell;
 use std::collections::VecDeque;
 
-thread_local! {
-    #[allow(non_upper_case_globals)]
-    pub static current_limbo: RefCell<fiber::Fiber<'static>> = unsafe { mem::uninitialized() };
-}
 
 pub struct Scheduler<'m, 'f> {
-    max_n_fiber: usize,
+    max_n_fiber: usize, // FIXME limit total stack page size instead of this
     iomon: &'m mut monitor::Monitor,
     running: VecDeque<Box<fiber::Fiber<'f>>>,
     blocking: VecDeque<Box<fiber::Fiber<'f>>>,
@@ -20,6 +15,7 @@ pub struct Scheduler<'m, 'f> {
     lock: spinlock::SpinLock,
     reqs: Vec<Box<FnBox + 'f>>,
     evch: adaptor::Adaptor,
+    pub limbo: fiber::Fiber<'f>,
     // TODO io extension points
 }
 
@@ -31,14 +27,15 @@ impl<'m, 'f> Scheduler<'m, 'f> {
         // TODO io extension points setup
 
         Scheduler {
-            max_n_fiber,
-            iomon,
+            max_n_fiber: max_n_fiber,
+            iomon: iomon,
             running: VecDeque::new(),
             blocking: VecDeque::new(),
             dying: VecDeque::new(),
             lock: spinlock::SpinLock::new(),
             reqs: Vec::new(),
-            evch,
+            evch: evch,
+            limbo: unsafe { mem::uninitialized() },
         }
     }
 
@@ -63,7 +60,7 @@ impl<'m, 'f> Scheduler<'m, 'f> {
             // 1. fetch quick reqs
             self.lock.lock();
             while let Some(f) = self.reqs.pop() {
-                if let Some(fiber) = fiber::Fiber::from_boxed(fiber::DEFAULT_STACK_PAGES, f) {
+                if let Some(fiber) = fiber::Fiber::from_boxed(fiber::DEFAULT_STACK_PAGES, f, self) {
                     self.running.push_back(fiber);
                 }
             }
@@ -74,9 +71,7 @@ impl<'m, 'f> Scheduler<'m, 'f> {
 
             // 3. resched
             if let Some(mut f) = self.running.pop_back() {
-                current_limbo.with(|limbo| {
-                    limbo.borrow_mut().switch(&mut *f);
-                });
+                self.limbo.switch(&mut *f);
             }
 
             // 4. bury the dead

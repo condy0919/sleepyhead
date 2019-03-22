@@ -5,13 +5,13 @@ use sleepyhead::io::monitor;
 
 fn main() {
     let mut iomon = monitor::Monitor::with_size(1024);
-    let mut scheder = scheduler::Scheduler::new(0, &mut iomon);
+    let mut sched = scheduler::Scheduler::new(0, &mut iomon);
 
     for i in 0..100 {
-        scheder.spawn(move || {
+        sched.spawn(move || {
             println!("i = {}", i);
         });
     }
 
-    scheder.mainloop();
+    sched.mainloop();
 }
