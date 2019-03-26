@@ -11,7 +11,7 @@ pub struct Scheduler<'m, 'f> {
     iomon: &'m mut monitor::Monitor,
     running: VecDeque<Box<fiber::Fiber<'f>>>,
     blocking: VecDeque<Box<fiber::Fiber<'f>>>,
-    dying: VecDeque<Box<fiber::Fiber<'f>>>,
+    pub dying: VecDeque<Box<fiber::Fiber<'f>>>,
     lock: spinlock::SpinLock,
     reqs: Vec<Box<FnBox + 'f>>,
     evch: adaptor::Adaptor,
@@ -70,8 +70,8 @@ impl<'m, 'f> Scheduler<'m, 'f> {
             // 2. polling
 
             // 3. resched
-            if let Some(mut f) = self.running.pop_back() {
-                self.limbo.switch(&mut *f);
+            if let Some(f) = self.running.pop_back() {
+                self.limbo.switch(Box::leak(f));
             }
 
             // 4. bury the dead

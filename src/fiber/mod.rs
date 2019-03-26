@@ -68,6 +68,8 @@ pub struct Fiber<'f> {
 impl<'f> Fiber<'f> {
     extern "C" fn entrance(arg: *mut u8) -> ! {
         let mut fiber = unsafe { Box::from_raw(arg as *mut Fiber) };
+        let this = unsafe { &mut *(arg as *mut Fiber) };
+        let sched = unsafe { &mut *(fiber.scheduler as *mut scheduler::Scheduler) };
 
         {
             let _guard = fiber.state.mark_entry();
@@ -79,23 +81,29 @@ impl<'f> Fiber<'f> {
         // TODO task steal from other fibers
 
         // TODO fiber is dying, move self to dying list
+        sched.dying.push_back(fiber);
 
-        // TODO switch to idel fiber
-        unsafe {
-            let sched = &mut *(fiber.scheduler as *mut scheduler::Scheduler);
-            fiber.switch(&mut sched.limbo);
-        }
+        // TODO switch to idle fiber
+        this.switch(&mut sched.limbo);
 
         unreachable!();
     }
 
     #[inline]
-    pub fn new<F: FnOnce() + 'f>(pages: usize, f: F, sched: &mut scheduler::Scheduler) -> Option<Box<Self>> {
+    pub fn new<F: FnOnce() + 'f>(
+        pages: usize,
+        f: F,
+        sched: &mut scheduler::Scheduler,
+    ) -> Option<Box<Self>> {
         Self::from_boxed(pages, Box::new(f), sched)
     }
 
     #[inline]
-    pub fn from_boxed(pages: usize, f: Box<FnBox + 'f>, sched: &mut scheduler::Scheduler) -> Option<Box<Self>> {
+    pub fn from_boxed(
+        pages: usize,
+        f: Box<FnBox + 'f>,
+        sched: &mut scheduler::Scheduler,
+    ) -> Option<Box<Self>> {
         stack::Stack::with_pages(pages).and_then(|stk| {
             let layout = alloc::Layout::new::<Fiber>();
             ptr::NonNull::new(unsafe { alloc::alloc(layout) }).and_then(|p| {
@@ -119,13 +127,13 @@ impl<'f> Fiber<'f> {
         })
     }
 
-
     #[inline]
     pub fn switch(&mut self, to: &mut Fiber<'_>) {
-        unsafe { self.ctx.switch(&mut to.ctx); }
+        unsafe {
+            self.ctx.switch(&mut to.ctx);
+        }
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -138,7 +146,6 @@ mod tests {
 
         assert_eq!(state, FiberState::Init);
 
-        // FIXME I know it's ugly, but I can't figure out a safe solution
         unsafe {
             let _guard = state.mark_entry();
             assert_eq!(*addr, FiberState::Entry);
@@ -151,16 +158,4 @@ mod tests {
         }
         assert_eq!(state, FiberState::Init);
     }
-
-    // FIXME CURRENTLY IT FAILS
-    //#[test]
-    //#[should_panic]
-    //fn test_fiber_switch() {
-    //    let mut idle = Fiber::new(0, || {}).unwrap();
-    //    let mut test = Fiber::new(64, move || {
-    //        panic!();
-    //    }).unwrap();
-
-    //    idle.switch(&mut test);
-    //}
 }
