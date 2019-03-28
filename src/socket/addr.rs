@@ -1,5 +1,4 @@
 use libc;
-use std::mem;
 
 #[derive(Copy, Clone, Debug)]
 #[repr(i32)]
@@ -12,6 +11,12 @@ pub enum AddressFamily {
 
 impl From<i32> for AddressFamily {
     fn from(family: i32) -> Self {
-        unsafe { mem::transmute_copy(&family) }
+        match family {
+            libc::AF_UNIX => AddressFamily::Unix,
+            libc::AF_INET => AddressFamily::Inet,
+            libc::AF_INET6 => AddressFamily::Inet6,
+            libc::AF_UNSPEC => AddressFamily::Unspec,
+            _ => panic!("unknown address family"),
+        }
     }
 }

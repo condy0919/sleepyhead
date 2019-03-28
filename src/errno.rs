@@ -162,6 +162,7 @@ pub enum Errno {
 impl From<i32> for Errno {
     #[inline]
     fn from(e: i32) -> Self {
+        assert!(e >= 0 && e <= libc::EHWPOISON);
         unsafe { mem::transmute_copy(&e) }
     }
 }
@@ -350,5 +351,11 @@ mod tests {
     fn test_errno_transmute() {
         let e = Errno::from(Errno::EAGAIN);
         assert_eq!(e.desc(), Errno::EAGAIN.desc());
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_errno_illegal() {
+        Errno::from(1024);
     }
 }
