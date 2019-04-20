@@ -1,0 +1,4 @@
+todo:
+  keyword: ['@todo', 'TODO']
+  bodykeyword: ['@body', 'BODY']
+  caseSensitive: true
